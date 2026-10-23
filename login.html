@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión - Admin Canchas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #0f172a; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .card-login { width: 100%; max-width: 400px; border-radius: 12px; }
+    </style>
+</head>
+<body>
+
+<div class="card card-login shadow-lg p-4 bg-white">
+    <div class="text-center mb-4">
+        <h3 class="fw-bold text-success"><i class="fa-solid fa-futbol me-2"></i>Admin Canchas</h3>
+        <p class="text-muted small">Ingresa tus credenciales para acceder al panel</p>
+    </div>
+
+    <div id="avisoLogin" class="alert alert-danger py-2 small" style="display: none;"></div>
+
+    <form id="formLogin">
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Correo</label>
+            <input type="email" id="email" class="form-control" placeholder="admin@ejemplo.com" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Contraseña</label>
+            <input type="password" id="password" class="form-control" placeholder="••••••••" required>
+        </div>
+        <button type="submit" id="btnEntrar" class="btn btn-success w-100 py-2 fw-bold mt-2">Iniciar Sesión</button>
+    </form>
+
+    <p class="text-muted small text-center mt-3 mb-0">
+        Solo cuentas con rol de administrador.
+    </p>
+</div>
+
+<script src="config.js"></script>
+<script>
+    const avisoLogin = document.getElementById('avisoLogin');
+    const btnEntrar = document.getElementById('btnEntrar');
+
+    function mostrarError(mensaje) {
+        avisoLogin.innerText = mensaje;
+        avisoLogin.style.display = 'block';
+    }
+
+    // Los mismos roles que reconoce el backend como administración.
+    const ROLES_PERMITIDOS = ['admin', 'administrador', 'superadmin', 'dueño_cancha', 'admin_complejo'];
+
+    document.getElementById('formLogin').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        avisoLogin.style.display = 'none';
+        btnEntrar.disabled = true;
+        btnEntrar.innerText = 'Entrando…';
+
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+
+        try {
+            const res = await fetch(`${API_URL}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                const detalle = typeof data.detail === 'string'
+                    ? data.detail
+                    : 'Correo o contraseña incorrectos';
+                mostrarError(detalle);
+                return;
+            }
+
+            // Se comprueba el rol ANTES de entrar.
+            const usuario = data.usuario || data.user || {};
+            const rol = String(usuario.rol || '').toLowerCase();
+
+            if (!ROLES_PERMITIDOS.includes(rol)) {
+                mostrarError('Esta cuenta no tiene permisos de administrador. '
+                           + 'Usa el usuario admin o pide que te cambien el rol.');
+                return;
+            }
+
+            // -------------------------------------------------------------------
+            // Guardar sesión básica
+            // -------------------------------------------------------------------
+            localStorage.setItem('admin_token', data.access_token || data.token);
+            localStorage.setItem('admin_nombre', usuario.nombre || 'Administrador');
+            localStorage.setItem('admin_rol', rol);
+
+            // -------------------------------------------------------------------
+            // Manejo del complejo:
+            //   - Si el backend le asignó complejo_id → queda amarrado a ese
+            //     complejo. Se marca con admin_complejo_fijo = 'true'.
+            //   - Si no viene complejo_id → es superadmin libre y elige en el
+            //     selector de complejos.
+            // -------------------------------------------------------------------
+            if (usuario.complejo_id) {
+                localStorage.setItem('admin_complejo_id', String(usuario.complejo_id));
+                localStorage.setItem('admin_complejo_nombre', '');
+                localStorage.setItem('admin_complejo_fijo', 'true');
+            } else {
+                localStorage.removeItem('admin_complejo_id');
+                localStorage.removeItem('admin_complejo_nombre');
+                localStorage.removeItem('admin_complejo_fijo');
+            }
+
+            window.location.href = 'index.html';
+
+        } catch (error) {
+            console.error(error);
+            mostrarError('No se pudo conectar con el servidor. '
+                       + 'Revisa que uvicorn esté corriendo.');
+        } finally {
+            btnEntrar.disabled = false;
+            btnEntrar.innerText = 'Iniciar Sesión';
+        }
+    });
+</script>
+</body>
+</html>

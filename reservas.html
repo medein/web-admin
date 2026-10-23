@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservas - Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-light">
+    <div class="d-flex">
+        <!-- Sidebar Navigation -->
+        <div class="bg-dark text-white p-3 vh-100" style="width: 250px;">
+            <h4 class="text-success"><i class="fa-solid fa-futbol me-2"></i>Admin Canchas</h4>
+            <hr>
+            <ul class="nav nav-pills flex-column mb-auto">
+                <li class="nav-item"><a href="index.html" class="nav-link text-white"><i class="fa-solid fa-chart-line me-2"></i>Inicio</a></li>
+                <li><a href="canchas.html" class="nav-link text-white"><i class="fa-solid fa-futbol me-2"></i>Canchas</a></li>
+                <li><a href="reservas.html" class="nav-link active bg-success"><i class="fa-solid fa-calendar me-2"></i>Reservas</a></li>
+                <li class="mt-4"><a href="#" onclick="cerrarSesion(event)" class="nav-link text-danger"><i class="fa-solid fa-power-off me-2"></i>Cerrar Sesión</a></li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="container-fluid p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h2 class="mb-0">Gestión de Reservas</h2>
+                    <small class="text-muted">Sesión: <span id="usuarioSesion">Administrador</span></small>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary" onclick="cargarMisReservas()">
+                        <i class="fa-solid fa-rotate me-1"></i> Actualizar
+                    </button>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalNuevaReserva">
+                        <i class="fa-solid fa-plus me-1"></i> Nueva Reserva
+                    </button>
+                </div>
+            </div>
+
+            <!-- FILTROS POR ESTADO -->
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-dark active" data-filtro="todas">Todas</button>
+                    <button type="button" class="btn btn-outline-warning" data-filtro="pendiente">Por aprobar</button>
+                    <button type="button" class="btn btn-outline-success" data-filtro="confirmada">Confirmadas</button>
+                    <button type="button" class="btn btn-outline-primary" data-filtro="completada">Completadas</button>
+                    <button type="button" class="btn btn-outline-danger" data-filtro="rechazada">Rechazadas</button>
+                    <button type="button" class="btn btn-outline-secondary" data-filtro="cancelada">Canceladas</button>
+                </div>
+                <small class="text-muted">Mostrando <span id="contadorReservas">0 de 0</span></small>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Cliente</th>
+                                    <th>Cancha y horario</th>
+                                    <th>Total</th>
+                                    <th>Pago</th>
+                                    <th>Estado</th>
+                                    <th>Comprobante</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaMisReservas">
+                                <!-- Inyección dinámica desde app.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <p class="text-muted small mt-3">
+                Las reservas pagadas por transferencia entran como <strong>pendientes</strong>:
+                revisa el comprobante y aprueba o rechaza. Las pagadas con tarjeta ya entran
+                confirmadas. Al rechazar se guarda el motivo y el cliente lo ve en la app.
+            </p>
+        </div>
+    </div>
+
+    <!-- Modal Nueva Reserva -->
+    <div class="modal fade" id="modalNuevaReserva" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="formNuevaReserva">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title">Nueva Reserva</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Cancha</label>
+                            <select id="reservaCanchaId" class="form-select" required>
+                                <option value="">Cargando canchas…</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Fecha</label>
+                            <input type="date" id="reservaFecha" class="form-control" required>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label">Hora Inicio</label>
+                                <input type="time" id="reservaHoraInicio" class="form-control" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Hora Fin</label>
+                                <input type="time" id="reservaHoraFin" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Método de pago</label>
+                            <select id="reservaMetodoPago" class="form-select">
+                                <option value="efectivo">Efectivo en cancha</option>
+                                <option value="transferencia">Transferencia o depósito</option>
+                                <option value="tarjeta">Tarjeta (queda confirmada)</option>
+                            </select>
+                        </div>
+                        <div class="alert alert-light border small mb-0">
+                            <i class="fa-solid fa-circle-info me-1"></i>
+                            El <strong>total</strong> lo calcula el servidor con el precio de la
+                            cancha (y la tarifa de hora pico desde las 18:00). La reserva queda
+                            registrada a nombre del administrador que la crea.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Guardar Reserva</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Ver Comprobante -->
+    <div class="modal fade" id="modalVerComprobante" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Comprobante de Pago</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="imgComprobanteModal" src="" class="img-fluid rounded shadow-sm" alt="Comprobante de pago">
+                    <div id="avisoPdfComprobante" style="display: none;" class="text-muted py-4">
+                        <i class="fa-solid fa-file-pdf fa-3x mb-2"></i>
+                        <p class="mb-0">El comprobante es un PDF.</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <a id="enlaceComprobante" href="#" target="_blank" rel="noopener" class="btn btn-outline-primary">
+                        <i class="fa-solid fa-up-right-from-square me-1"></i> Abrir en una pestaña nueva
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complejos - Panel de Administración</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f4f6f9; }
+        .sidebar { min-height: 100vh; background-color: #1e293b; color: white; }
+        .nav-link { cursor: pointer; }
+        .card-complejo { transition: transform .15s, box-shadow .15s; }
+        .card-complejo:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,.08); }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- SIDEBAR -->
+        <div class="col-md-2 sidebar p-3">
+            <h4 class="text-success text-center mb-4"><i class="fa-solid fa-futbol me-2"></i>Admin Canchas</h4>
+            <hr>
+            <ul class="nav nav-pills flex-column mb-auto">
+                <li class="nav-item mb-2"><a href="index.html" class="nav-link text-white"><i class="fa-solid fa-chart-line me-2"></i> Dashboard</a></li>
+                <li class="nav-item mb-2" id="menuComplejos"><a href="complejos.html" class="nav-link active bg-success text-white"><i class="fa-solid fa-building me-2"></i> Complejos</a></li>
+                <li class="nav-item mb-2"><a href="canchas.html" class="nav-link text-white"><i class="fa-solid fa-list me-2"></i> Canchas</a></li>
+                <li class="nav-item mb-2"><a href="reservas.html" class="nav-link text-white"><i class="fa-solid fa-calendar-check me-2"></i> Reservas</a></li>
+                <li class="nav-item mb-2" id="menuUsuarios"><a href="usuarios.html" class="nav-link text-white"><i class="fa-solid fa-users-gear me-2"></i> Usuarios y admins</a></li>
+                <li class="nav-item mt-4">
+                    <a href="#" onclick="cerrarSesion(event)" class="nav-link text-danger">
+                        <i class="fa-solid fa-right-from-bracket me-2"></i> Cerrar Sesión
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- CONTENIDO -->
+        <div class="col-md-10 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-0">Complejos</h2>
+                    <small class="text-muted" id="contadorComplejos">Cargando...</small>
+                </div>
+                <button class="btn btn-success" onclick="abrirFormularioComplejo()">
+                    <i class="fa-solid fa-plus me-1"></i> Nuevo Complejo
+                </button>
+            </div>
+
+            <div class="row g-3" id="listaComplejos"></div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL FORMULARIO -->
+<div class="modal fade" id="modalComplejo" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="modal-titulo-complejo">Nuevo Complejo</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formComplejo">
+                    <input type="hidden" id="complejo-id">
+
+                    <!-- IMAGEN -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Imagen del complejo</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <img id="preview-imagen-complejo"
+     src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='110'><rect width='160' height='110' fill='%23eef2f4'/><text x='50%25' y='50%25' font-family='sans-serif' font-size='12' fill='%23999' text-anchor='middle' dominant-baseline='middle'>Sin imagen</text></svg>"
+     class="rounded border"
+     style="width:160px;height:110px;object-fit:cover;">
+                            <div class="flex-grow-1">
+                                <input type="file" id="input-imagen-complejo"
+                                       accept="image/*" class="d-none"
+                                       onchange="subirImagenComplejo(this)">
+                                <button type="button" class="btn btn-sm btn-outline-success w-100 mb-2"
+                                        onclick="document.getElementById('input-imagen-complejo').click()">
+                                    <i class="fa-solid fa-upload me-1"></i> Subir / cambiar imagen
+                                </button>
+                                <div class="form-text small">
+                                    JPG, PNG o WEBP. Máx 5 MB.<br>
+                                    Si editas un complejo ya guardado, la imagen se sube al toque.
+                                </div>
+                                <div id="estado-imagen" class="small mt-1"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- DATOS BÁSICOS -->
+                    <div class="mb-3">
+                        <label class="form-label">Nombre</label>
+                        <input id="complejo-nombre" class="form-control" required minlength="2">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Dirección</label>
+                        <input id="complejo-direccion" class="form-control" required min_length="3">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Teléfono (opcional)</label>
+                        <input id="complejo-telefono" class="form-control">
+                    </div>
+
+                    <!-- UBICACIÓN -->
+                    <div class="card bg-light border-0 mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label fw-bold mb-0">
+                                    <i class="fa-solid fa-location-dot text-success me-1"></i>
+                                    Coordenadas
+                                </label>
+                                <button type="button" class="btn btn-sm btn-outline-success"
+                                        onclick="usarMiUbicacion()">
+                                    <i class="fa-solid fa-crosshairs me-1"></i> Usar mi ubicación
+                                </button>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label small text-muted">Latitud</label>
+                                    <input id="complejo-latitud" type="number" step="any"
+                                           class="form-control form-control-sm" placeholder="14.5833">
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label small text-muted">Longitud</label>
+                                    <input id="complejo-longitud" type="number" step="any"
+                                           class="form-control form-control-sm" placeholder="-90.5167">
+                                </div>
+                            </div>
+                            <small class="text-muted d-block">
+                                Con estas coordenadas la app ordena los complejos por cercanía.
+                            </small>
+                            <div id="estadoUbicacion" class="small mt-2"></div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Apertura (HH:MM)</label>
+                            <input id="complejo-apertura" class="form-control" placeholder="07:00">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cierre (HH:MM)</label>
+                            <input id="complejo-cierre" class="form-control" placeholder="23:00">
+                        </div>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="complejo-activo" checked>
+                        <label class="form-check-label" for="complejo-activo">Activo (visible para los clientes)</label>
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100">Guardar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script src="complejos.js"></script>
+</body>
+</html>
